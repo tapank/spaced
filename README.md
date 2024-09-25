@@ -6,16 +6,16 @@ Beat the forgetting curve by reviewing topics using spaced repetition schedule.
 
 ### Config file
 
-- File name: .config/srs/srsrc
+- File name: `.config/srs/srsrc`
 - Format:
 	- comments start with #
 	- brief description in the comment
 	- intervals: 0,1,3,7,21,30,45,60
-	- datapath: <path for data files>
+	- datapath: `<path for data files>`
 
 ### Data file
 
-- File name: <user>.srs
+- File name: `<user>.srs`
 - Format: create_date|last_date|next_interval|subject|task 
 
 ### Flow
@@ -31,7 +31,7 @@ Beat the forgetting curve by reviewing topics using spaced repetition schedule.
 		- bad: change last date to today, and set first interval
 		- skip: do not change anything
 		- delete: ask for confirmation
-			- yes: soft delete task (next_interval= -1)
+			- yes: soft delete task (`next_interval= -1`)
 			- no: do nothing
 - Save file
 - Go to START
