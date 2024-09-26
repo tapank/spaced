@@ -77,6 +77,8 @@ var intervals = []int{0, 1, 3, 7, 21, 30, 45, 60}
 
 const SEP = "|" // field separator in the srs data file
 const COM = '#' // a line starting with this character will be ignored for parsing
+const configdir = "spaced"
+const configfile = "spacedrc"
 
 func main() {
 	loadConfig()
@@ -298,7 +300,70 @@ func WriteTasks(filename string, tasks []*Task) (err error) {
 }
 
 func loadConfig() {
-	path = "/home/tapan/tmp"
+	confighome, _ := os.UserConfigDir()
+	if _, err := os.Stat(confighome + "/" + configdir + "/" + configfile); err != nil {
+		fmt.Println("config file does not exist")
+		createConfig()
+	}
+
+	// Open the file
+	var file *os.File
+	var err error
+	if file, err = os.Open(confighome + "/" + configdir + "/" + configfile); err != nil {
+		log.Fatalf("could not open config file due to error: %v", err)
+	}
+	defer file.Close()
+
+	// Create a scanner to read the file line by line
+	scanner := bufio.NewScanner(file)
+
+	// Read line by line
+	for scanner.Scan() {
+		line := scanner.Text()
+		line = strings.TrimSpace(line)
+		// ignore empty lines and comments
+		if len(line) == 0 {
+			continue
+		} else if line[0] == COM {
+			fmt.Println(line)
+			continue
+		}
+		if strings.HasPrefix(line, "path=") {
+			path = strings.TrimPrefix(line, "path=")
+		}
+	}
+
+	// Check for errors
+	if err = scanner.Err(); err != nil {
+		log.Fatalf("could not read config file due to error: %v", err)
+	}
+	if path == "" {
+		log.Fatalf("path not configured in config file")
+	}
+}
+
+func createConfig() {
+	var err error
+	home, _ := os.UserConfigDir()
+	os.Mkdir(home+"/"+configdir, 0755)
+	// if err != nil {
+	// 	log.Fatalf("could not create config dir due to error: %v", err)
+	// }
+
+	var file *os.File
+	if file, err = os.Create(home + "/" + configdir + "/" + configfile); err != nil {
+		log.Fatalf("could not create config file due to error: %v", err)
+	}
+	defer file.Close()
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter path to data folder: ")
+	text, _ := reader.ReadString('\n')
+	text = strings.TrimSpace(text)
+	// Write config
+	if _, err = file.WriteString("path=" + text + "\n"); err != nil {
+		log.Fatalf("could not write to config file due to error: %v", err)
+	}
 }
 
 func Parse(fname string) (err error) {
