@@ -92,10 +92,10 @@ func main() {
 		if err := WriteTasks(filename, alltasks); err != nil {
 			log.Fatalf("error while writing data file: %v", err)
 		}
+		fmt.Println()
 		if err := Parse(filename); err != nil {
 			log.Fatalf("error while parsing data file: %v", err)
 		}
-		fmt.Println()
 	}
 }
 
