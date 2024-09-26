@@ -15,20 +15,77 @@ import (
 
 // Task is the item that is repeated as per schedule
 type Task struct {
-	ID           int
 	CreateTime   time.Time
 	UpdateTime   time.Time
-	NextInterval time.Duration
+	NextInterval int
 	Subject      string
 	Name         string
 }
 
-var tasks map[int]*Task
+// New parses a string int the format create_date|last_date|next_interval|subject|task to create a Task
+func New(line string) (t *Task, err error) {
+	t = &Task{}
+	tokens := strings.Split(line, SEP)
+	if len(tokens) != 5 {
+		err = errors.New("bad data line: " + line)
+		return
+	}
+	if t.CreateTime, err = time.Parse(layout, tokens[0]); err != nil {
+		return
+	}
+	if t.UpdateTime, err = time.Parse(layout, tokens[1]); err != nil {
+		return
+	}
+	if t.NextInterval, err = strconv.Atoi(tokens[2]); err != nil {
+		return
+	}
+	t.Subject = tokens[3]
+	t.Name = tokens[4]
+	return
+}
+
+// New parses a string int the format create_date|last_date|next_interval|subject|task to create a Task
+func (t *Task) String() string {
+	var s strings.Builder
+	s.WriteString(t.CreateTime.Format(layout))
+	s.WriteString(SEP)
+	s.WriteString(t.UpdateTime.Format(layout))
+	s.WriteString(SEP)
+	s.WriteString(strconv.Itoa(t.NextInterval))
+	s.WriteString(SEP)
+	s.WriteString(t.Subject)
+	s.WriteString(SEP)
+	s.WriteString(t.Name)
+	return s.String()
+}
+
 var user string
 var path string
+var layout = time.RFC3339 // "2006-01-02T15:04:05Z07:00"
+var alltasks = []*Task{}
+var activetasks = []*Task{}
 
-// var layout = time.RFC3339 // "2006-01-02T15:04:05Z07:00"
+const SEP = "|" // field separator in the srs data file
+const COM = '#' // a line starting with this character will be ignored for parsing
 
+func main() {
+	loadConfig()
+	if user = User(); user == "" {
+		return
+	}
+	fmt.Println("User name is:", user)
+	filename := path + "/" + user + ".srs"
+	if err := Parse(filename); err != nil {
+		log.Fatalf("error while parsing data file: %v", err)
+	}
+	for ShowTasks(alltasks) {
+		if err := WriteTasks(filename, alltasks); err != nil {
+			log.Fatalf("error while writing data file: %v", err)
+		}
+	}
+}
+
+// User asks user to select an existing user or create new and returns it
 func User() string {
 	// collect file names with .srs extension
 	userFiles, err := func(root, pattern string) ([]string, error) {
@@ -87,6 +144,7 @@ func User() string {
 		if name, err := validateUserName(text); err != nil {
 			log.Fatalf("invalid use name: %v", err)
 		} else if slices.Contains(users, name) {
+			// ignore empty lines and comments
 			log.Fatalf("user already exists: %s", name)
 		} else {
 			// Create an empty file
@@ -127,29 +185,64 @@ func validateUserName(s string) (string, error) {
 	return s, nil
 }
 
-func Tasks(user string) map[int]*Task {
-	return nil
-}
-
-func ShowTasks(tasks map[int]*Task) bool {
+func ShowTasks(tasks []*Task) bool {
 	return false
 }
 
-func WriteTasks(tasks map[int]*Task) {
+func WriteTasks(filename string, tasks []*Task) (err error) {
+	// Create a file
+	var file *os.File
+	if file, err = os.Create(filename); err != nil {
+		return
+	}
+	defer file.Close()
+
+	// Write lines
+	if _, err = file.WriteString(fmt.Sprintf("# last updated: %s", time.Now().Format(layout)) + "\n"); err != nil {
+		return
+	}
+	for _, t := range alltasks {
+		if _, err = file.WriteString(t.String() + "\n"); err != nil {
+			return
+		}
+	}
+	return
 }
 
 func loadConfig() {
 	path = "/home/tapan/tmp"
 }
 
-func main() {
-	loadConfig()
-	if user = User(); user == "" {
+func Parse(fname string) (err error) {
+	// Open the file
+	var file *os.File
+	if file, err = os.Open(fname); err != nil {
 		return
 	}
-	fmt.Println("User name is:", user)
-	tasks = Tasks(user)
-	for ShowTasks(tasks) {
-		WriteTasks(tasks)
+	defer file.Close()
+
+	// Create a scanner to read the file line by line
+	scanner := bufio.NewScanner(file)
+
+	// Read line by line
+	for scanner.Scan() {
+		line := scanner.Text()
+		line = strings.TrimSpace(line)
+		// ignore empty lines and comments
+		if len(line) == 0 || line[0] == COM {
+			continue
+		}
+		var task *Task
+		if task, err = New(line); err != nil {
+			return
+		}
+		alltasks = append(alltasks, task)
+		if task.NextInterval >= 0 && task.UpdateTime.Add(time.Hour*24*time.Duration(task.NextInterval)).Before(time.Now()) {
+			activetasks = append(activetasks, task)
+		}
 	}
+
+	// Check for errors
+	err = scanner.Err()
+	return
 }
