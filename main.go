@@ -95,6 +95,7 @@ func main() {
 		if err := Parse(filename); err != nil {
 			log.Fatalf("error while parsing data file: %v", err)
 		}
+		fmt.Println()
 	}
 }
 
@@ -233,7 +234,7 @@ func ShowTasks(tasks []*Task) bool {
 				if srno > 0 && srno <= len(tasks) {
 					current := tasks[srno-1]
 					fmt.Println("updating task:", current.Description())
-					fmt.Print("how did it go? (g)ood, (b)ad, (q)uit: ")
+					fmt.Print("how did it go? (g)ood, (b)ad, (d)elete task, (q)uit: ")
 					text, _ = reader.ReadString('\n')
 					text = strings.TrimSpace(text)
 					switch text {
@@ -241,6 +242,25 @@ func ShowTasks(tasks []*Task) bool {
 						current.NextInterval = NextInterval(current.NextInterval)
 					case "b":
 						current.NextInterval = intervals[0]
+					case "d":
+						fmt.Print("are you sure? (y)es delete, (n)o cancel: ")
+						text, _ = reader.ReadString('\n')
+						text = strings.TrimSpace(text)
+						if text == "y" {
+							for i, t := range alltasks {
+								if t == current {
+									alltasks = append(alltasks[:i], alltasks[i+1:]...)
+									break
+								}
+							}
+							for i, t := range activetasks {
+								if t == current {
+									activetasks = append(activetasks[:i], activetasks[i+1:]...)
+									break
+								}
+							}
+							fmt.Println("deleted:", current.Description())
+						}
 					case "q":
 						return false
 					default:
@@ -264,10 +284,11 @@ func WriteTasks(filename string, tasks []*Task) (err error) {
 	}
 	defer file.Close()
 
-	// Write lines
+	// Write comment
 	if _, err = file.WriteString(fmt.Sprintf("# last updated: %s", time.Now().Format(layout)) + "\n"); err != nil {
 		return
 	}
+	// Write tasks
 	for _, t := range alltasks {
 		if _, err = file.WriteString(t.String() + "\n"); err != nil {
 			return
