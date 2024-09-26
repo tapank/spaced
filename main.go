@@ -22,7 +22,7 @@ type Task struct {
 	Name         string
 }
 
-// New parses a string int the format create_date|last_date|next_interval|subject|task to create a Task
+// New parses string of format 'create_date|last_date|next_interval|subject|task' to create a Task
 func New(line string) (t *Task, err error) {
 	t = &Task{}
 	tokens := strings.Split(line, SEP)
@@ -68,7 +68,6 @@ func (t *Task) Description() string {
 	return s.String()
 }
 
-var user string
 var path string
 var layout = time.RFC3339 // "2006-01-02T15:04:05Z07:00"
 var alltasks []*Task
@@ -82,10 +81,11 @@ const configfile = "spacedrc"
 
 func main() {
 	loadConfig()
+	var user string
 	if user = User(); user == "" {
 		return
 	}
-	fmt.Println("User name is:", user)
+	fmt.Println("User name:", user)
 	filename := path + "/" + user + ".srs"
 	if err := Parse(filename); err != nil {
 		log.Fatalf("error while parsing data file: %v", err)
@@ -149,14 +149,11 @@ func User() string {
 		fmt.Print("enter your choice [<sno> | (a)dd new user | (q)uit]: ")
 	}
 
-	reader := bufio.NewReader(os.Stdin)
-	text, _ := reader.ReadString('\n')
-	text = strings.TrimSpace(text)
+	text := GetInput("")
 	if text == "q" {
 		return ""
 	} else if text == "a" {
-		fmt.Print("enter user name: ")
-		text, _ = reader.ReadString('\n')
+		text = GetInput("enter user name: ")
 		if name, err := validateUserName(text); err != nil {
 			log.Fatalf("invalid use name: %v", err)
 		} else if slices.Contains(users, name) {
@@ -195,7 +192,7 @@ func validateUserName(s string) (string, error) {
 		case (r >= '0' && r <= '9'):
 		case r == '_' || r == '-':
 		default:
-			return "", errors.New("only alphabets, digits, hypyen, underscore allowed")
+			return "", errors.New("only alphabets, digits, hypyens, underscores allowed")
 		}
 	}
 	return s, nil
@@ -204,15 +201,15 @@ func validateUserName(s string) (string, error) {
 func ShowTasks(tasks []*Task) bool {
 	if len(tasks) > 0 {
 		fmt.Println("tasks due:")
+	} else {
+		fmt.Println("no tasks due")
 	}
 	for i, t := range tasks {
-		fmt.Printf("%d. [%s] %s\n", i+1, t.Subject, t.Name)
+		fmt.Printf("%d. %s\n", i+1, t.Description())
 	}
+
 	for {
-		fmt.Print("select task [<sno> | (a)dd new task | (q)uit]: ")
-		reader := bufio.NewReader(os.Stdin)
-		text, _ := reader.ReadString('\n')
-		text = strings.TrimSpace(text)
+		text := GetInput("select task [<sno> | (a)dd new task | (q)uit]: ")
 		if text == "q" {
 			return false
 		} else if text == "a" {
@@ -222,12 +219,8 @@ func ShowTasks(tasks []*Task) bool {
 				NextInterval: 0,
 			}
 			fmt.Println("add new task: ")
-			fmt.Print("enter subject: ")
-			text, _ = reader.ReadString('\n')
-			t.Subject = strings.TrimSpace(text)
-			fmt.Print("enter task name: ")
-			text, _ = reader.ReadString('\n')
-			t.Name = strings.TrimSpace(text)
+			t.Subject = GetInput("enter subject: ")
+			t.Name = GetInput("enter task name: ")
 			alltasks = append(alltasks, t)
 			activetasks = append(activetasks, t)
 			return true
@@ -236,18 +229,14 @@ func ShowTasks(tasks []*Task) bool {
 				if srno > 0 && srno <= len(tasks) {
 					current := tasks[srno-1]
 					fmt.Println("updating task:", current.Description())
-					fmt.Print("how did it go? (g)ood, (b)ad, (d)elete task, (q)uit: ")
-					text, _ = reader.ReadString('\n')
-					text = strings.TrimSpace(text)
+					text = GetInput("how did it go? (g)ood, (b)ad, (d)elete task, (q)uit: ")
 					switch text {
 					case "g":
 						current.NextInterval = NextInterval(current.NextInterval)
 					case "b":
 						current.NextInterval = intervals[0]
 					case "d":
-						fmt.Print("are you sure? (y)es delete, (n)o cancel: ")
-						text, _ = reader.ReadString('\n')
-						text = strings.TrimSpace(text)
+						text = GetInput("are you sure? (y)es delete, (n)o cancel: ")
 						if text == "y" {
 							for i, t := range alltasks {
 								if t == current {
@@ -356,10 +345,7 @@ func createConfig() {
 	}
 	defer file.Close()
 
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter path to data folder: ")
-	text, _ := reader.ReadString('\n')
-	text = strings.TrimSpace(text)
+	text := GetInput("Enter path to data folder: ")
 	// Write config
 	if _, err = file.WriteString("path=" + text + "\n"); err != nil {
 		log.Fatalf("could not write to config file due to error: %v", err)
@@ -381,8 +367,7 @@ func Parse(fname string) (err error) {
 
 	// Read line by line
 	for scanner.Scan() {
-		line := scanner.Text()
-		line = strings.TrimSpace(line)
+		line := strings.TrimSpace(scanner.Text())
 		// ignore empty lines and comments
 		if len(line) == 0 {
 			continue
@@ -399,10 +384,7 @@ func Parse(fname string) (err error) {
 			activetasks = append(activetasks, task)
 		}
 	}
-
-	// Check for errors
-	err = scanner.Err()
-	return
+	return scanner.Err()
 }
 
 func NextInterval(n int) int {
@@ -415,4 +397,11 @@ func NextInterval(n int) int {
 		}
 	}
 	return -1
+}
+
+func GetInput(msg string) string {
+	fmt.Print(msg)
+	reader := bufio.NewReader(os.Stdin)
+	text, _ := reader.ReadString('\n')
+	return strings.TrimSpace(text)
 }

@@ -6,12 +6,9 @@ Beat the forgetting curve by reviewing topics using spaced repetition schedule.
 
 ### Config file
 
-- File name: `.config/srs/srsrc`
+- File name: `<user_config_home>/spaced/spacedrc`
 - Format:
-	- comments start with #
-	- brief description in the comment
-	- intervals: 0,1,3,7,21,30,45,60
-	- datapath: `<path for data files>`
+	path=`<path for data files>`
 
 ### Data file
 
@@ -24,6 +21,8 @@ Beat the forgetting curve by reviewing topics using spaced repetition schedule.
 - Allow selection of a user or offer to create new user
 - Open or create user file
 - START: List active tasks and provide option to select or add task or quit
+	- tasks become active after these days of creation: 0,1,3,7,21,30,45,60
+	- comments start with #
 	- quit: go to END
 	- add: take input for new task, go to START
 	- select: provide options good, bad, skip, delete selected task
