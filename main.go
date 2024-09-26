@@ -59,11 +59,21 @@ func (t *Task) String() string {
 	return s.String()
 }
 
+func (t *Task) Description() string {
+	var s strings.Builder
+	s.WriteString("[")
+	s.WriteString(t.Subject)
+	s.WriteString("] ")
+	s.WriteString(t.Name)
+	return s.String()
+}
+
 var user string
 var path string
 var layout = time.RFC3339 // "2006-01-02T15:04:05Z07:00"
-var alltasks = []*Task{}
-var activetasks = []*Task{}
+var alltasks []*Task
+var activetasks []*Task
+var intervals = []int{0, 1, 3, 7, 21, 30, 45, 60}
 
 const SEP = "|" // field separator in the srs data file
 const COM = '#' // a line starting with this character will be ignored for parsing
@@ -78,9 +88,12 @@ func main() {
 	if err := Parse(filename); err != nil {
 		log.Fatalf("error while parsing data file: %v", err)
 	}
-	for ShowTasks(alltasks) {
+	for ShowTasks(activetasks) {
 		if err := WriteTasks(filename, alltasks); err != nil {
 			log.Fatalf("error while writing data file: %v", err)
+		}
+		if err := Parse(filename); err != nil {
+			log.Fatalf("error while parsing data file: %v", err)
 		}
 	}
 }
@@ -186,7 +199,61 @@ func validateUserName(s string) (string, error) {
 }
 
 func ShowTasks(tasks []*Task) bool {
-	return false
+	if len(tasks) > 0 {
+		fmt.Println("tasks due:")
+	}
+	for i, t := range tasks {
+		fmt.Printf("%d. [%s] %s\n", i+1, t.Subject, t.Name)
+	}
+	for {
+		fmt.Print("select task [<sno> | (a)dd new task | (q)uit]: ")
+		reader := bufio.NewReader(os.Stdin)
+		text, _ := reader.ReadString('\n')
+		text = strings.TrimSpace(text)
+		if text == "q" {
+			return false
+		} else if text == "a" {
+			t := &Task{
+				CreateTime:   time.Now(),
+				UpdateTime:   time.Now(),
+				NextInterval: 0,
+			}
+			fmt.Println("add new task: ")
+			fmt.Print("enter subject: ")
+			text, _ = reader.ReadString('\n')
+			t.Subject = strings.TrimSpace(text)
+			fmt.Print("enter task name: ")
+			text, _ = reader.ReadString('\n')
+			t.Name = strings.TrimSpace(text)
+			alltasks = append(alltasks, t)
+			activetasks = append(activetasks, t)
+			return true
+		} else {
+			if srno, err := strconv.Atoi(text); err == nil {
+				if srno > 0 && srno <= len(tasks) {
+					current := tasks[srno-1]
+					fmt.Println("updating task:", current.Description())
+					fmt.Print("how did it go? (g)ood, (b)ad, (q)uit: ")
+					text, _ = reader.ReadString('\n')
+					text = strings.TrimSpace(text)
+					switch text {
+					case "g":
+						current.NextInterval = NextInterval(current.NextInterval)
+					case "b":
+						current.NextInterval = intervals[0]
+					case "q":
+						return false
+					default:
+						fmt.Println("unknown option:", text)
+						continue
+					}
+					return true
+				} else {
+					fmt.Println("incorrect choice:", text)
+				}
+			}
+		}
+	}
 }
 
 func WriteTasks(filename string, tasks []*Task) (err error) {
@@ -214,6 +281,8 @@ func loadConfig() {
 }
 
 func Parse(fname string) (err error) {
+	alltasks = []*Task{}
+	activetasks = []*Task{}
 	// Open the file
 	var file *os.File
 	if file, err = os.Open(fname); err != nil {
@@ -229,7 +298,10 @@ func Parse(fname string) (err error) {
 		line := scanner.Text()
 		line = strings.TrimSpace(line)
 		// ignore empty lines and comments
-		if len(line) == 0 || line[0] == COM {
+		if len(line) == 0 {
+			continue
+		} else if line[0] == COM {
+			fmt.Println(line)
 			continue
 		}
 		var task *Task
@@ -237,7 +309,7 @@ func Parse(fname string) (err error) {
 			return
 		}
 		alltasks = append(alltasks, task)
-		if task.NextInterval >= 0 && task.UpdateTime.Add(time.Hour*24*time.Duration(task.NextInterval)).Before(time.Now()) {
+		if task.NextInterval >= 0 && task.UpdateTime.AddDate(0, 0, task.NextInterval).Before(time.Now()) {
 			activetasks = append(activetasks, task)
 		}
 	}
@@ -245,4 +317,16 @@ func Parse(fname string) (err error) {
 	// Check for errors
 	err = scanner.Err()
 	return
+}
+
+func NextInterval(n int) int {
+	if n < 0 {
+		return n
+	}
+	for _, num := range intervals {
+		if num > n {
+			return num
+		}
+	}
+	return -1
 }
