@@ -233,8 +233,10 @@ func ShowTasks(tasks []*Task) bool {
 					switch text {
 					case "g":
 						current.NextInterval = NextInterval(current.NextInterval)
+						current.UpdateTime = time.Now()
 					case "b":
 						current.NextInterval = intervals[0]
+						current.UpdateTime = time.Now()
 					case "d":
 						text = GetInput("are you sure? (y)es delete, (n)o cancel: ")
 						if text == "y" {
