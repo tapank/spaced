@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -68,6 +69,7 @@ func (t *Task) Description() string {
 	return s.String()
 }
 
+var user string
 var path string
 var layout = time.RFC3339 // "2006-01-02T15:04:05Z07:00"
 var alltasks []*Task
@@ -81,11 +83,9 @@ const configfile = "spacedrc"
 
 func main() {
 	loadConfig()
-	var user string
 	if user = User(); user == "" {
 		return
 	}
-	fmt.Println("User name:", user)
 	filename := path + "/" + user + ".srs"
 	if err := Parse(filename); err != nil {
 		log.Fatalf("error while parsing data file: %v", err)
@@ -138,6 +138,7 @@ func User() string {
 		users = append(users, file)
 	}
 
+	clearscreen()
 	if len(users) == 0 {
 		fmt.Println("no user files found")
 		fmt.Print("enter your choice [(a)dd new user | (q)uit]: ")
@@ -199,10 +200,11 @@ func validateUserName(s string) (string, error) {
 }
 
 func ShowTasks(tasks []*Task) bool {
+	clearscreen()
 	if len(tasks) > 0 {
-		fmt.Println("tasks due:")
+		fmt.Printf("tasks due for %s:\n", user)
 	} else {
-		fmt.Println("no tasks due")
+		fmt.Println("no tasks due for", user)
 	}
 	for i, t := range tasks {
 		fmt.Printf("%d. %s\n", i+1, t.Description())
@@ -406,4 +408,10 @@ func GetInput(msg string) string {
 	reader := bufio.NewReader(os.Stdin)
 	text, _ := reader.ReadString('\n')
 	return strings.TrimSpace(text)
+}
+
+func clearscreen() {
+	cmd := exec.Command("clear")
+	cmd.Stdout = os.Stdout
+	cmd.Run()
 }
