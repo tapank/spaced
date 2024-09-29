@@ -88,15 +88,15 @@ func main() {
 	}
 	filename := path + "/" + user + ".srs"
 	if err := Parse(filename); err != nil {
-		log.Fatalf("error while parsing data file: %v", err)
+		log.Fatalf("error parsing data file: %v", err)
 	}
 	for ShowTasks(activetasks) {
 		if err := WriteTasks(filename, alltasks); err != nil {
-			log.Fatalf("error while writing data file: %v", err)
+			log.Fatalf("error writing data file: %v", err)
 		}
 		fmt.Println()
 		if err := Parse(filename); err != nil {
-			log.Fatalf("error while parsing data file: %v", err)
+			log.Fatalf("error parsing data file: %v", err)
 		}
 	}
 }
@@ -126,7 +126,7 @@ func User() string {
 		return matches, nil
 	}(path, "*.srs")
 	if err != nil {
-		log.Fatalf("Encountered error while looking for data files: %v", err)
+		log.Fatalf("error finding data files: %v", err)
 	}
 
 	users := []string{}
@@ -143,17 +143,17 @@ func User() string {
 		fmt.Println("no user files found")
 		fmt.Print("enter your choice [(a)dd new user | (q)uit]: ")
 	} else {
-		fmt.Println("Select user:")
+		fmt.Println("select user:")
 		for i, username := range users {
 			fmt.Println(i+1, username)
 		}
 		fmt.Print("enter your choice [<sno> | (a)dd new user | (q)uit]: ")
 	}
 
-	text := GetInput("")
-	if text == "q" {
+	switch text := GetInput(""); text {
+	case "q":
 		return ""
-	} else if text == "a" {
+	case "a":
 		text = GetInput("enter user name: ")
 		if name, err := validateUserName(text); err != nil {
 			log.Fatalf("invalid use name: %v", err)
@@ -169,16 +169,16 @@ func User() string {
 			}
 			return name
 		}
-	}
-	if index, err := strconv.Atoi(text); err != nil {
-		log.Fatalf("invalid choice: %s", text)
-	} else {
-		index -= 1
-		if index >= 0 && index < len(users) {
-			return users[index]
+	default:
+		if index, err := strconv.Atoi(text); err != nil {
+			log.Fatalf("invalid choice: %s", text)
+		} else {
+			index -= 1
+			if index >= 0 && index < len(users) {
+				return users[index]
+			}
 		}
 	}
-	log.Fatalf("invalid choice: %s", text)
 	return ""
 }
 
@@ -193,7 +193,7 @@ func validateUserName(s string) (string, error) {
 		case (r >= '0' && r <= '9'):
 		case r == '_' || r == '-':
 		default:
-			return "", errors.New("only alphabets, digits, hypyens, underscores allowed")
+			return "", errors.New("only alphabets, digits, hypyens, underscores allowed in user name")
 		}
 	}
 	return s, nil
@@ -270,7 +270,7 @@ func ShowTasks(tasks []*Task) bool {
 }
 
 func WriteTasks(filename string, tasks []*Task) (err error) {
-	// Create a file
+	// Create or erase data file
 	var file *os.File
 	if file, err = os.Create(filename); err != nil {
 		return
@@ -297,30 +297,26 @@ func loadConfig() {
 		createConfig()
 	}
 
-	// Open the file
+	// Open config file
 	var file *os.File
 	var err error
 	if file, err = os.Open(confighome + "/" + configdir + "/" + configfile); err != nil {
-		log.Fatalf("could not open config file due to error: %v", err)
+		log.Fatalf("error opening config file: %v", err)
 	}
 	defer file.Close()
 
-	// Create a scanner to read the file line by line
-	scanner := bufio.NewScanner(file)
-
-	// Read line by line
-	for scanner.Scan() {
-		line := scanner.Text()
-		line = strings.TrimSpace(line)
+	var scanner *bufio.Scanner
+	for scanner = bufio.NewScanner(file); scanner.Scan(); {
 		// ignore empty lines and comments
-		if len(line) == 0 {
+		if line := strings.TrimSpace(scanner.Text()); len(line) == 0 {
 			continue
 		} else if line[0] == COM {
 			fmt.Println(line)
 			continue
-		}
-		if strings.HasPrefix(line, "path=") {
-			path = strings.TrimPrefix(line, "path=")
+		} else {
+			if strings.HasPrefix(line, "path=") {
+				path = strings.TrimPrefix(line, "path=")
+			}
 		}
 	}
 
@@ -338,7 +334,7 @@ func createConfig() {
 	home, _ := os.UserConfigDir()
 	err = os.Mkdir(home+"/"+configdir, 0755)
 	if err != nil {
-		log.Fatalf("could not create config dir due to error: %v", err)
+		log.Fatalf("error creating config dir: %v", err)
 	}
 
 	var file *os.File
