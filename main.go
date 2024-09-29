@@ -211,10 +211,10 @@ func ShowTasks(tasks []*Task) bool {
 	}
 
 	for {
-		text := GetInput("select task [<sno> | (a)dd new task | (q)uit]: ")
-		if text == "q" {
+		switch text := GetInput("select task [<sno> | (a)dd new task | (q)uit]: "); text {
+		case "q":
 			return false
-		} else if text == "a" {
+		case "a":
 			t := &Task{
 				CreateTime:   time.Now(),
 				UpdateTime:   time.Now(),
@@ -226,13 +226,12 @@ func ShowTasks(tasks []*Task) bool {
 			alltasks = append(alltasks, t)
 			activetasks = append(activetasks, t)
 			return true
-		} else {
+		default:
 			if srno, err := strconv.Atoi(text); err == nil {
 				if srno > 0 && srno <= len(tasks) {
 					current := tasks[srno-1]
 					fmt.Println("updating task:", current.Description())
-					text = GetInput("how did it go? (g)ood, (b)ad, (d)elete task, (q)uit: ")
-					switch text {
+					switch GetInput("how did it go? (g)ood, (b)ad, (d)elete task, (q)uit: ") {
 					case "g":
 						current.NextInterval = NextInterval(current.NextInterval)
 						current.UpdateTime = time.Now()
@@ -240,8 +239,7 @@ func ShowTasks(tasks []*Task) bool {
 						current.NextInterval = intervals[0]
 						current.UpdateTime = time.Now()
 					case "d":
-						text = GetInput("are you sure? (y)es delete, (n)o cancel: ")
-						if text == "y" {
+						if text = GetInput("are you sure? (y)es delete, (n)o cancel: "); text == "y" {
 							for i, t := range alltasks {
 								if t == current {
 									alltasks = append(alltasks[:i], alltasks[i+1:]...)
@@ -328,31 +326,31 @@ func loadConfig() {
 
 	// Check for errors
 	if err = scanner.Err(); err != nil {
-		log.Fatalf("could not read config file due to error: %v", err)
+		log.Fatalf("error reading config file: %v", err)
 	}
 	if path == "" {
-		log.Fatalf("path not configured in config file")
+		log.Fatalf("path not found in config file")
 	}
 }
 
 func createConfig() {
 	var err error
 	home, _ := os.UserConfigDir()
-	os.Mkdir(home+"/"+configdir, 0755)
-	// if err != nil {
-	// 	log.Fatalf("could not create config dir due to error: %v", err)
-	// }
+	err = os.Mkdir(home+"/"+configdir, 0755)
+	if err != nil {
+		log.Fatalf("could not create config dir due to error: %v", err)
+	}
 
 	var file *os.File
 	if file, err = os.Create(home + "/" + configdir + "/" + configfile); err != nil {
-		log.Fatalf("could not create config file due to error: %v", err)
+		log.Fatalf("error creating config file: %v", err)
 	}
 	defer file.Close()
 
-	text := GetInput("Enter path to data folder: ")
+	text := GetInput("enter path to data folder: ")
 	// Write config
 	if _, err = file.WriteString("path=" + text + "\n"); err != nil {
-		log.Fatalf("could not write to config file due to error: %v", err)
+		log.Fatalf("error writing config file: %v", err)
 	}
 }
 
