@@ -378,7 +378,7 @@ func Parse(fname string) (err error) {
 			return
 		}
 		alltasks = append(alltasks, task)
-		if task.NextInterval >= 0 && task.UpdateTime.AddDate(0, 0, task.NextInterval).Before(time.Now()) {
+		if task.NextInterval >= 0 && task.UpdateTime.AddDate(0, 0, task.NextInterval).Add(time.Hour*12).Before(time.Now()) {
 			activetasks = append(activetasks, task)
 		}
 	}
