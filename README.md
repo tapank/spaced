@@ -38,7 +38,13 @@ list.
 - Location: <spacedrc.path>
 - Format: createdAt|updatedAt|nextInterval|subject|task
 
-# TODO
+# Tasks
+
+## todo
 
 - List all tasks (including expired, active, and due)
 - List all tasks for a subject
+
+## done
+- Make subject selection for new tasks an option rather than free text
+

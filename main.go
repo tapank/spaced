@@ -74,6 +74,7 @@ var path string
 var layout = time.RFC3339 // "2006-01-02T15:04:05Z07:00"
 var alltasks []*Task
 var activetasks []*Task
+var subjects []string
 var intervals = []int{0, 1, 3, 7, 21, 30, 45, 60}
 
 const SEP = "|" // field separator in the srs data file
@@ -221,7 +222,20 @@ func ShowTasks(tasks []*Task) bool {
 				NextInterval: 0,
 			}
 			fmt.Println("add new task: ")
-			t.Subject = GetInput("enter subject: ")
+			for {
+				subjectChoice := GetInput(subjectsList())
+				if subjectChoice == "a" {
+					t.Subject = strings.ToLower(GetInput("enter new subject: "))
+					break
+				} else if subjectIndex, err := strconv.Atoi(subjectChoice); err != nil {
+					fmt.Println("invalid choice:", subjectChoice)
+				} else if subjectIndex < 1 || subjectIndex > len(subjects) {
+					fmt.Println("invalid choice:", subjectChoice)
+				} else {
+					t.Subject = subjects[subjectIndex-1]
+					break
+				}
+			}
 			t.Name = GetInput("enter task name: ")
 			alltasks = append(alltasks, t)
 			activetasks = append(activetasks, t)
@@ -353,6 +367,8 @@ func createConfig() {
 func Parse(fname string) (err error) {
 	alltasks = []*Task{}
 	activetasks = []*Task{}
+	subjects = []string{}
+
 	// Open the file
 	var file *os.File
 	if file, err = os.Open(fname); err != nil {
@@ -378,6 +394,9 @@ func Parse(fname string) (err error) {
 			return
 		}
 		alltasks = append(alltasks, task)
+		if !slices.Contains(subjects, task.Subject) {
+			subjects = append(subjects, task.Subject)
+		}
 		if task.NextInterval >= 0 && task.UpdateTime.AddDate(0, 0, task.NextInterval).Add(time.Hour*12).Before(time.Now()) {
 			activetasks = append(activetasks, task)
 		}
@@ -408,4 +427,15 @@ func clearscreen() {
 	cmd := exec.Command("clear")
 	cmd.Stdout = os.Stdout
 	cmd.Run()
+}
+
+func subjectsList() string {
+	var sb strings.Builder
+	sb.WriteString("select subject")
+	for i, s := range subjects {
+		sb.WriteString(" (" + strconv.Itoa(i+1) + ") ")
+		sb.WriteString(s)
+	}
+	sb.WriteString(" (a)dd new subject: ")
+	return sb.String()
 }
