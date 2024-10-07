@@ -42,11 +42,10 @@ list.
 
 ## todo
 
-- Show how long a task has been due along with the task
-- Show upcoming tasks in a separate group when printing pending tasks
 - List all tasks (including expired, active, and due)
 - List all tasks for a subject
 
 ## done
 - Make subject selection for new tasks an option rather than free text
-
+- Show how long a task has been due along with the task
+- Show upcoming tasks in a separate group when printing pending tasks

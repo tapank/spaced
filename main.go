@@ -65,7 +65,11 @@ func (t *Task) String() string {
 }
 
 func (t *Task) Description() string {
+	due := time.Since(t.UpdateTime.Add(t.NextInterval))
 	var s strings.Builder
+	s.WriteString("[")
+	s.WriteString(fmt.Sprintf("%2dd %02dh", Days(due), Hours(due)))
+	s.WriteString("]")
 	s.WriteString("[")
 	s.WriteString(t.Subject)
 	s.WriteString("] ")
@@ -78,6 +82,7 @@ var path string
 var layout = time.RFC3339 // "2006-01-02T15:04:05Z07:00"
 var alltasks []*Task
 var activetasks []*Task
+var upcomingtasks []*Task
 var subjects []string
 
 const DAY = time.Hour * 24
@@ -99,7 +104,7 @@ func main() {
 	if err := Parse(filename); err != nil {
 		log.Fatalf("error parsing data file: %v", err)
 	}
-	for ShowTasks(activetasks) {
+	for ShowTasks() {
 		if err := WriteTasks(filename, alltasks); err != nil {
 			log.Fatalf("error writing data file: %v", err)
 		}
@@ -208,15 +213,25 @@ func validateUserName(s string) (string, error) {
 	return s, nil
 }
 
-func ShowTasks(tasks []*Task) bool {
+func ShowTasks() bool {
 	clearscreen()
-	if len(tasks) > 0 {
-		fmt.Printf("tasks due for %s:\n", user)
+	fmt.Printf("tasks for '%s':\n", user)
+	if len(activetasks) > 0 {
+		fmt.Println("due:")
 	} else {
-		fmt.Println("no tasks due for", user)
+		fmt.Println("no tasks due")
 	}
-	for i, t := range tasks {
+	for i, t := range activetasks {
 		fmt.Printf("%d. %s\n", i+1, t.Description())
+	}
+
+	if len(upcomingtasks) > 0 {
+		fmt.Println("coming up:")
+	} else {
+		fmt.Println("nothing comging up")
+	}
+	for _, t := range upcomingtasks {
+		fmt.Printf(".. %s\n", t.Description())
 	}
 
 	for {
@@ -250,8 +265,8 @@ func ShowTasks(tasks []*Task) bool {
 			return true
 		default:
 			if srno, err := strconv.Atoi(text); err == nil {
-				if srno > 0 && srno <= len(tasks) {
-					current := tasks[srno-1]
+				if srno > 0 && srno <= len(activetasks) {
+					current := activetasks[srno-1]
 					fmt.Println("updating task:", current.Description())
 					switch GetInput("how did it go? (g)ood, (b)ad, (d)elete task, (q)uit: ") {
 					case "g":
@@ -375,6 +390,7 @@ func createConfig() {
 func Parse(fname string) (err error) {
 	alltasks = []*Task{}
 	activetasks = []*Task{}
+	upcomingtasks = []*Task{}
 	subjects = []string{}
 
 	// Open the file
@@ -407,6 +423,8 @@ func Parse(fname string) (err error) {
 		}
 		if task.NextInterval >= 0 && task.UpdateTime.Add(task.NextInterval).Before(time.Now()) {
 			activetasks = append(activetasks, task)
+		} else if task.NextInterval >= 0 && task.UpdateTime.Add(task.NextInterval).Before(time.Now().Add(2*DAY)) {
+			upcomingtasks = append(upcomingtasks, task)
 		}
 	}
 	return scanner.Err()
@@ -455,4 +473,18 @@ func FormatDuration(d time.Duration) string {
 		return strconv.Itoa(int(d / DAY))
 	}
 	return strconv.Itoa(int(d/time.Hour)) + "h"
+}
+
+func Days(d time.Duration) int {
+	if d < 0 {
+		d = -d
+	}
+	return int(d / DAY)
+}
+
+func Hours(d time.Duration) int {
+	if d < 0 {
+		d = -d
+	}
+	return int((d % DAY) / time.Hour)
 }
