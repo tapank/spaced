@@ -18,7 +18,7 @@ import (
 type Task struct {
 	CreateTime   time.Time
 	UpdateTime   time.Time
-	NextInterval int
+	NextInterval time.Duration
 	Subject      string
 	Name         string
 }
@@ -37,8 +37,12 @@ func New(line string) (t *Task, err error) {
 	if t.UpdateTime, err = time.Parse(layout, tokens[1]); err != nil {
 		return
 	}
-	if t.NextInterval, err = strconv.Atoi(tokens[2]); err != nil {
-		return
+	if nextInterval, e := strconv.Atoi(tokens[2]); e != nil {
+		if t.NextInterval, err = time.ParseDuration(tokens[2]); err != nil {
+			return
+		}
+	} else {
+		t.NextInterval = time.Duration(nextInterval) * DAY
 	}
 	t.Subject = tokens[3]
 	t.Name = tokens[4]
@@ -52,7 +56,7 @@ func (t *Task) String() string {
 	s.WriteString(SEP)
 	s.WriteString(t.UpdateTime.Format(layout))
 	s.WriteString(SEP)
-	s.WriteString(strconv.Itoa(t.NextInterval))
+	s.WriteString(FormatDuration(t.NextInterval))
 	s.WriteString(SEP)
 	s.WriteString(t.Subject)
 	s.WriteString(SEP)
@@ -75,7 +79,11 @@ var layout = time.RFC3339 // "2006-01-02T15:04:05Z07:00"
 var alltasks []*Task
 var activetasks []*Task
 var subjects []string
-var intervals = []int{0, 1, 3, 7, 21, 30, 45, 60}
+
+const DAY = time.Hour * 24
+
+// intervals must have at least one element or the new task creation will fail at runtime
+var intervals = []time.Duration{12 * time.Hour, 1 * DAY, 3 * DAY, 7 * DAY, 21 * DAY, 30 * DAY, 45 * DAY, 60 * DAY}
 
 const SEP = "|" // field separator in the srs data file
 const COM = '#' // a line starting with this character will be ignored for parsing
@@ -219,7 +227,7 @@ func ShowTasks(tasks []*Task) bool {
 			t := &Task{
 				CreateTime:   time.Now(),
 				UpdateTime:   time.Now(),
-				NextInterval: 0,
+				NextInterval: intervals[0],
 			}
 			fmt.Println("add new task: ")
 			for {
@@ -397,20 +405,20 @@ func Parse(fname string) (err error) {
 		if !slices.Contains(subjects, task.Subject) {
 			subjects = append(subjects, task.Subject)
 		}
-		if task.NextInterval >= 0 && task.UpdateTime.AddDate(0, 0, task.NextInterval).Add(time.Hour*12).Before(time.Now()) {
+		if task.NextInterval >= 0 && task.UpdateTime.Add(task.NextInterval).Before(time.Now()) {
 			activetasks = append(activetasks, task)
 		}
 	}
 	return scanner.Err()
 }
 
-func NextInterval(n int) int {
-	if n < 0 {
-		return n
+func NextInterval(duration time.Duration) time.Duration {
+	if duration < 0 {
+		return duration
 	}
-	for _, num := range intervals {
-		if num > n {
-			return num
+	for _, d := range intervals {
+		if d > duration {
+			return d
 		}
 	}
 	return -1
@@ -438,4 +446,13 @@ func subjectsList() string {
 	}
 	sb.WriteString(" (a)dd new subject: ")
 	return sb.String()
+}
+
+func FormatDuration(d time.Duration) string {
+	if d < 0 {
+		return "-1"
+	} else if d >= DAY || d < time.Hour {
+		return strconv.Itoa(int(d / DAY))
+	}
+	return strconv.Itoa(int(d/time.Hour)) + "h"
 }
