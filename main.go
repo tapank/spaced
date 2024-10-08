@@ -155,13 +155,13 @@ func User() string {
 	clearscreen()
 	if len(users) == 0 {
 		fmt.Println("no user files found")
-		fmt.Print("enter your choice [(a)dd new user | (q)uit]: ")
+		fmt.Print("\nenter your choice [(a)dd new user | (q)uit]: ")
 	} else {
 		fmt.Println("select user:")
 		for i, username := range users {
 			fmt.Println(i+1, username)
 		}
-		fmt.Print("enter your choice [<sno> | (a)dd new user | (q)uit]: ")
+		fmt.Print("\nenter your choice [<sno> | (a)dd new user | (q)uit]: ")
 	}
 
 	switch text := GetInput(""); text {
@@ -216,26 +216,25 @@ func validateUserName(s string) (string, error) {
 func ShowTasks() bool {
 	clearscreen()
 	fmt.Printf("tasks for '%s':\n", user)
-	if len(activetasks) > 0 {
-		fmt.Println("due:")
-	} else {
-		fmt.Println("no tasks due")
+	fmt.Println("\ndue:")
+	if len(activetasks) == 0 {
+		fmt.Println("-")
 	}
 	for i, t := range activetasks {
 		fmt.Printf("%d. %s\n", i+1, t.Description())
 	}
 
+	fmt.Println("\ncoming up:")
 	if len(upcomingtasks) > 0 {
-		fmt.Println("coming up:")
 	} else {
-		fmt.Println("nothing comging up")
+		fmt.Println("-")
 	}
 	for _, t := range upcomingtasks {
 		fmt.Printf(".. %s\n", t.Description())
 	}
 
 	for {
-		switch text := GetInput("select task [<sno> | (a)dd new task | (q)uit]: "); text {
+		switch text := GetInput("\nselect task [<sno> | (a)dd new task | (q)uit]: "); text {
 		case "q":
 			return false
 		case "a":
