@@ -81,7 +81,7 @@ var user string
 var path string
 var layout = time.RFC3339 // "2006-01-02T15:04:05Z07:00"
 var alltasks []*Task
-var activetasks []*Task
+var duetasks []*Task
 var upcomingtasks []*Task
 var subjects []string
 
@@ -215,12 +215,12 @@ func validateUserName(s string) (string, error) {
 
 func ShowTasks() bool {
 	clearscreen()
-	fmt.Printf("tasks for '%s':\n", user)
+	fmt.Printf("tasks for '%s' (total: %d, due: %d):\n", user, len(alltasks), len(duetasks))
 	fmt.Println("\ndue:")
-	if len(activetasks) == 0 {
+	if len(duetasks) == 0 {
 		fmt.Println("-")
 	}
-	for i, t := range activetasks {
+	for i, t := range duetasks {
 		fmt.Printf("%d. %s\n", i+1, t.Description())
 	}
 
@@ -260,12 +260,12 @@ func ShowTasks() bool {
 			}
 			t.Name = GetInput("enter task name: ")
 			alltasks = append(alltasks, t)
-			activetasks = append(activetasks, t)
+			duetasks = append(duetasks, t)
 			return true
 		default:
 			if srno, err := strconv.Atoi(text); err == nil {
-				if srno > 0 && srno <= len(activetasks) {
-					current := activetasks[srno-1]
+				if srno > 0 && srno <= len(duetasks) {
+					current := duetasks[srno-1]
 					fmt.Println("updating task:", current.Description())
 					switch GetInput("how did it go? (g)ood, (b)ad, (d)elete task, (q)uit: ") {
 					case "g":
@@ -282,9 +282,9 @@ func ShowTasks() bool {
 									break
 								}
 							}
-							for i, t := range activetasks {
+							for i, t := range duetasks {
 								if t == current {
-									activetasks = append(activetasks[:i], activetasks[i+1:]...)
+									duetasks = append(duetasks[:i], duetasks[i+1:]...)
 									break
 								}
 							}
@@ -388,7 +388,7 @@ func createConfig() {
 
 func Parse(fname string) (err error) {
 	alltasks = []*Task{}
-	activetasks = []*Task{}
+	duetasks = []*Task{}
 	upcomingtasks = []*Task{}
 	subjects = []string{}
 
@@ -421,7 +421,7 @@ func Parse(fname string) (err error) {
 			subjects = append(subjects, task.Subject)
 		}
 		if task.NextInterval >= 0 && task.UpdateTime.Add(task.NextInterval).Before(time.Now()) {
-			activetasks = append(activetasks, task)
+			duetasks = append(duetasks, task)
 		} else if task.NextInterval >= 0 && task.UpdateTime.Add(task.NextInterval).Before(time.Now().Add(2*DAY)) {
 			upcomingtasks = append(upcomingtasks, task)
 		}
