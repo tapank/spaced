@@ -229,8 +229,8 @@ func ShowTasks() bool {
 	} else {
 		fmt.Println("-")
 	}
-	for _, t := range upcomingtasks {
-		fmt.Printf(".. %s\n", t.Description())
+	for i, t := range upcomingtasks {
+		fmt.Printf("%d %s\n", len(duetasks)+i+1, t.Description())
 	}
 
 	for {
@@ -264,16 +264,24 @@ func ShowTasks() bool {
 			return true
 		default:
 			if srno, err := strconv.Atoi(text); err == nil {
-				if srno > 0 && srno <= len(duetasks) {
-					current := duetasks[srno-1]
-					fmt.Println("updating task:", current.Description())
-					switch GetInput("how did it go? (g)ood, (b)ad, (d)elete task, (q)uit: ") {
+				index := srno - 1
+				if index >= 0 && index < len(duetasks)+len(upcomingtasks) {
+					var current *Task
+					if index < len(duetasks) {
+						current = duetasks[index]
+					} else {
+						current = upcomingtasks[index-len(duetasks)]
+					}
+					fmt.Println("\nupdating task:", current.Description())
+					switch GetInput("select: mark (g)ood, mark (b)ad, (e)dit task, (d)elete task, (q)uit: ") {
 					case "g":
 						current.NextInterval = NextInterval(current.NextInterval)
 						current.UpdateTime = time.Now()
 					case "b":
 						current.NextInterval = intervals[0]
 						current.UpdateTime = time.Now()
+					case "e":
+						current.Name = GetInput("enter updated task name: ")
 					case "d":
 						if text = GetInput("are you sure? (y)es delete, (n)o cancel: "); text == "y" {
 							for i, t := range alltasks {
@@ -288,7 +296,6 @@ func ShowTasks() bool {
 									break
 								}
 							}
-							fmt.Println("deleted:", current.Description())
 						}
 					case "q":
 						return false
