@@ -88,7 +88,7 @@ var subjects []string
 const DAY = time.Hour * 24
 
 // intervals must have at least one element or the new task creation will fail at runtime
-var intervals = []time.Duration{12 * time.Hour, 1 * DAY, 3 * DAY, 7 * DAY, 21 * DAY, 30 * DAY, 45 * DAY, 60 * DAY}
+var intervals = []time.Duration{12 * time.Hour, 1 * DAY, 2 * DAY, 4 * DAY, 7 * DAY, 10 * DAY, 14 * DAY, 21 * DAY, 28 * DAY}
 
 const SEP = "|" // field separator in the srs data file
 const COM = '#' // a line starting with this character will be ignored for parsing
