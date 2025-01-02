@@ -440,12 +440,14 @@ func NextInterval(duration time.Duration) time.Duration {
 	if duration < 0 {
 		return duration
 	}
+	var last time.Duration = -1
 	for _, d := range intervals {
+		last = d
 		if d > duration {
 			return d
 		}
 	}
-	return -1
+	return last
 }
 
 func GetInput(msg string) string {
