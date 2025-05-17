@@ -207,7 +207,7 @@ func validateUserName(s string) (string, error) {
 		case (r >= '0' && r <= '9'):
 		case r == '_' || r == '-':
 		default:
-			return "", errors.New("only alphabets, digits, hypyens, underscores allowed in user name")
+			return "", errors.New("only alphabets, digits, hyphens, and underscores allowed in user name")
 		}
 	}
 	return s, nil
