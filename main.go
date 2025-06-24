@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +22,7 @@ type Task struct {
 	NextInterval time.Duration
 	Subject      string
 	Name         string
+	Due          time.Duration
 }
 
 // New parses string of format 'create_date|last_date|next_interval|subject|task' to create a Task
@@ -46,6 +48,7 @@ func New(line string) (t *Task, err error) {
 	}
 	t.Subject = tokens[3]
 	t.Name = tokens[4]
+	t.Due = time.Since(t.UpdateTime.Add(t.NextInterval))
 	return
 }
 
@@ -65,10 +68,10 @@ func (t *Task) String() string {
 }
 
 func (t *Task) Description() string {
-	due := time.Since(t.UpdateTime.Add(t.NextInterval))
+
 	var s strings.Builder
 	s.WriteString("[")
-	s.WriteString(fmt.Sprintf("%2dd %02dh", Days(due), Hours(due)))
+	s.WriteString(fmt.Sprintf("%2dd %02dh", Days(t.Due), Hours(t.Due)))
 	s.WriteString("]")
 	s.WriteString("[")
 	s.WriteString(t.Subject)
@@ -433,6 +436,13 @@ func Parse(fname string) (err error) {
 			upcomingtasks = append(upcomingtasks, task)
 		}
 	}
+	// sort due and upcoming tasks by due descending
+	sort.Slice(duetasks, func(i, j int) bool {
+		return duetasks[i].Due > duetasks[j].Due // Descending
+	})
+	sort.Slice(upcomingtasks, func(i, j int) bool {
+		return upcomingtasks[i].Due > upcomingtasks[j].Due // Descending
+	})
 	return scanner.Err()
 }
 
