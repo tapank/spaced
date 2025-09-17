@@ -98,7 +98,25 @@ const COM = '#' // a line starting with this character will be ignored for parsi
 const configdir = "spaced"
 const configfile = "spacedrc"
 
+// program version
+const version = "v1.0.0"
+
 func main() {
+	if len(os.Args[1:]) == 1 {
+		switch os.Args[1] {
+		case "-h", "--help":
+			printHelp()
+			return
+		case "-v", "--version":
+			fmt.Println(version)
+			return
+		default:
+			fmt.Println("unknown option:", os.Args[1])
+			printHelp()
+			return
+		}
+	}
+
 	loadConfig()
 	if user = User(); user == "" {
 		return
@@ -505,4 +523,12 @@ func Hours(d time.Duration) int {
 		d = -d
 	}
 	return int((d % DAY) / time.Hour)
+}
+
+func printHelp() {
+	fmt.Println("usage: spaced")
+	fmt.Println("A simple spaced repetition scheduler for tasks")
+	fmt.Println("options:")
+	fmt.Println("  -h, --help     show this help message and exit")
+	fmt.Println("  -v, --version  show program version and exit")
 }
