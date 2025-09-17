@@ -115,6 +115,10 @@ func main() {
 			printHelp()
 			return
 		}
+	} else if len(os.Args[1:]) > 1 {
+		fmt.Println("too many arguments")
+		printHelp()
+		return
 	}
 
 	loadConfig()
