@@ -98,8 +98,9 @@ const COM = '#' // a line starting with this character will be ignored for parsi
 const configdir = "spaced"
 const configfile = "spacedrc"
 
-// program version
-const version = "v1.0.0"
+// program Version
+var Version = "v1.1.0"
+var BuildTime = "" // will be filled by the build system
 
 func main() {
 	if len(os.Args[1:]) == 1 {
@@ -108,7 +109,7 @@ func main() {
 			printHelp()
 			return
 		case "-v", "--version":
-			fmt.Println(version)
+			fmt.Println(Version, BuildTime)
 			return
 		default:
 			fmt.Println("unknown option:", os.Args[1])
