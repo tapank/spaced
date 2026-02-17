@@ -99,7 +99,7 @@ const configdir = "spaced"
 const configfile = "spacedrc"
 
 // program Version
-var Version = "v1.2.0"
+var Version = "v1.2.1"
 var BuildTime = "" // will be filled by the build system
 
 func main() {
@@ -125,7 +125,7 @@ func main() {
 		case "-u", "--uname":
 			user = os.Args[2]
 		default:
-			fmt.Println("unknown option:", os.Args[1])
+			fmt.Println("too many arguments")
 			printHelp()
 			return
 		}
