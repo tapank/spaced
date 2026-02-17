@@ -99,7 +99,7 @@ const configdir = "spaced"
 const configfile = "spacedrc"
 
 // program Version
-var Version = "v1.1.0"
+var Version = "v1.2.0"
 var BuildTime = "" // will be filled by the build system
 
 func main() {
@@ -111,20 +111,35 @@ func main() {
 		case "-v", "--version":
 			fmt.Println(Version, BuildTime)
 			return
+		case "-u", "--uname":
+			fmt.Println("missing username")
+			printHelp()
+			return
 		default:
 			fmt.Println("unknown option:", os.Args[1])
 			printHelp()
 			return
 		}
-	} else if len(os.Args[1:]) > 1 {
+	} else if len(os.Args[1:]) == 2 {
+		switch os.Args[1] {
+		case "-u", "--uname":
+			user = os.Args[2]
+		default:
+			fmt.Println("unknown option:", os.Args[1])
+			printHelp()
+			return
+		}
+	} else if len(os.Args[1:]) != 0 {
 		fmt.Println("too many arguments")
 		printHelp()
 		return
 	}
 
 	loadConfig()
-	if user = User(); user == "" {
-		return
+	if user == "" {
+		if user = User(); user == "" {
+			return
+		}
 	}
 	filename := path + "/" + user + ".srs"
 	if err := Parse(filename); err != nil {
@@ -531,9 +546,10 @@ func Hours(d time.Duration) int {
 }
 
 func printHelp() {
-	fmt.Println("usage: spaced")
+	fmt.Println("usage: spaced [option]")
 	fmt.Println("A simple spaced repetition scheduler for tasks")
 	fmt.Println("options:")
 	fmt.Println("  -h, --help     show this help message and exit")
 	fmt.Println("  -v, --version  show program version and exit")
+	fmt.Println("  -u <username>, --uname  <username>   load the specified user")
 }
